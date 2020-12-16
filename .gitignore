@@ -1,0 +1,11 @@
+/chesscheckersgame/wasmfiles/
+
+/chesspoker_package/target/
+
+/single-server/target/
+
+/wasm_builder/pkg/
+/wasm_builder/target/
+
+
+/matchmaker/target/
