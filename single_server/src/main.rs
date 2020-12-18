@@ -28,7 +28,7 @@ fn main() {
     
     let gamepassword = args[2].clone();
     
-    let webaddress = "127.0.0.1".to_string();
+    let webaddress = "0.0.0.0".to_string();
     let gameport = &args[1];
 
     let listener = TcpListener::bind(webaddress + ":" + gameport).unwrap();

@@ -17,7 +17,7 @@ fn main() {
     
     
     //open a websocket connection with any server 
-    let webaddress = "127.0.0.1".to_string();
+    let webaddress = "0.0.0.0".to_string();
     let gameport = 3050.to_string();
 
 
@@ -32,7 +32,7 @@ fn main() {
     
     //for each websocket stream this server gets
     for stream in listener.incoming() {
-        
+    
         
         //accept a new websocket 10 times every second
         let sleeptime = time::Duration::from_millis(100);
@@ -339,7 +339,7 @@ fn port_is_available(port: u16) -> bool {
 }
 
 fn get_available_port() -> Option<u16> {
-    (3000..4000).find(|port| port_is_available(*port))
+    (12000..13000).find(|port| port_is_available(*port))
 }
 
 
