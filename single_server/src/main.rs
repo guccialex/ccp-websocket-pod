@@ -19,19 +19,22 @@ use std::env;
 
 fn main() {
     println!("Hello, world!");
-
-
+    
+    
     //the command line arguments
     let args: Vec<String> = env::args().collect();
     println!("{:?}", args);
-
     
-    let gamepassword = args[2].clone();
+    
+    //the password is set by the matchmaker through the matchmakers port
+    let gamepassword = "password".to_string();
+    
     
     let webaddress = "0.0.0.0".to_string();
-    let gameport = &args[1];
-
-    let listener = TcpListener::bind(webaddress + ":" + gameport).unwrap();
+    //the port the players connect to the server through is 3000
+    let playerport = "3000";
+    
+    let playerlistener = TcpListener::bind(webaddress + ":" + playerport).unwrap();
     
     
     //tell agones that the game is ready to accept player connections
@@ -47,7 +50,7 @@ fn main() {
     spawn(move || {
         
         loop{
-
+            
             
             //it shouldnt be WAIT 33 ms, but wait until its 
             //33 ms past the last time this was ticked
@@ -65,21 +68,51 @@ fn main() {
             
         }
         
+    });
+    
+    
+    
+    //the connection this server has with the matchmaking server
+    //on port 4000
+    spawn(move || {
+        
+        let webaddress = "0.0.0.0".to_string();
+        let gameport = "4000";
+        
+        let listener = TcpListener::bind(webaddress + ":" + gameport).unwrap();
+        
+        
+        //listen for the websocket connection
+        //which i should only get once
+        for stream in listener.incoming() {
+
+            
+            let stream = stream.unwrap();
+                
+            
+            println!("accepted a connection witht eh matchamking server");
+
+
+            break;
+        }
+        
         
     });
     
     
     
     //for each websocket stream this server gets
-    for stream in listener.incoming() {
+    for stream in playerlistener.incoming() {
+
+        println!("connected to player");
         
-        
+
         //accept a new websocket 10 times every second
         let sleeptime = time::Duration::from_millis(100);
         thread::sleep( sleeptime );
         
         let mutexgamecopy = mutexgame.clone();
-
+        
         let gamepasswordcopy = gamepassword.clone();
         
         
@@ -91,10 +124,6 @@ fn main() {
             handle_connection(stream, mutexgamecopy, gamepasswordcopy);            
         });        
     }
-    
-    
-    
-    
     
     
     
@@ -127,8 +156,8 @@ fn handle_connection(mut stream: TcpStream, game: Arc< Mutex< Game >>, password:
     let sleeptime = time::Duration::from_millis(2000);
     thread::sleep( sleeptime );
     
-
-
+    
+    
     
     
     //if theres a message
@@ -142,31 +171,31 @@ fn handle_connection(mut stream: TcpStream, game: Arc< Mutex< Game >>, password:
         //if the message im receiving is a string
         if let Ok(textmsg) = msg.into_text(){
             
-
-
+            
+            
             //if its the password
             if textmsg == password{
                 
                 if let Ok(unlockedgame) = &mut game.lock(){
-
-
+                    
+                    
                     if unlockedgame.player1websocket.is_none(){
                         //if player 1 doesnt exist, connect this websocket as player 1
                         unlockedgame.connect_player1(websocket);
-
+                        
                     }
                     //or if player 2 doesnt exist, connect this websocket as player 2
                     else if unlockedgame.player2websocket.is_none(){
-
+                        
                         //if player 1 doesnt exist, connect this websocket as player 1
                         unlockedgame.connect_player2(websocket);
                     }
-                
+                    
                 }
-
-
+                
+                
             }
-
+            
             
             
             //if its not the password for either, do nothing
@@ -204,7 +233,7 @@ struct Game{
     
     
     totalticks: u32,
-
+    
     //if I received an input from a player last tick, send an update method
     tosendupdate: bool,
     
@@ -230,7 +259,7 @@ impl Game{
             player2websocket: None,
             
             totalticks: 0,
-
+            
             tosendupdate: false,
             
         }
@@ -311,13 +340,13 @@ impl Game{
                     if let Ok(receivedmessage) = socket.read_message(){
                         
                         self.tosendupdate = true;
-
+                        
                         let message = receivedmessage.to_string();
                         
                         //convert this to a player input
                         //if you can
                         if let Ok(playerinput) = serde_json::from_str::<PlayerInput>(&message){
-
+                            
                             //give the player input to the game
                             self.thegame.receive_input(1, playerinput);
                         }
@@ -329,7 +358,7 @@ impl Game{
             }
             //receive player 2's queued input if there is any
             {
-
+                
                 use physicsengine::PlayerInput;
                 
                 if let Some(socket) = &mut self.player2websocket{
@@ -337,14 +366,14 @@ impl Game{
                     if let Ok(receivedmessage) = socket.read_message(){
                         
                         self.tosendupdate = true;
-
+                        
                         let message = receivedmessage.to_string();
-
-
+                        
+                        
                         //convert this to a player input
                         //if you can
                         if let Ok(playerinput) = serde_json::from_str::<PlayerInput>(&message){
-
+                            
                             //give the player input to the game
                             self.thegame.receive_input(2, playerinput);
                         }
@@ -366,15 +395,15 @@ impl Game{
                 let stringmessage = vecofchar.iter().collect::<String>();
                 let player1msg = Message::text(stringmessage);
                 if let Some(thing) = self.player1websocket.as_mut(){
-
+                    
                     if let Ok(sentsuccessfully) =  thing.write_message(player1msg){
-
+                        
                     }
                     else{
                         //send failed
                         //player 1 probably disconnected
                     }
-
+                    
                 }
                 
                 
@@ -383,23 +412,23 @@ impl Game{
                 let stringmessage = vecofchar.iter().collect::<String>();
                 let player2msg = Message::text(stringmessage);
                 if let Some(thing) = self.player2websocket.as_mut(){
-
+                    
                     if let Ok(sentsuccessfully) =  thing.write_message(player2msg){
-
+                        
                     }
                     else{
                         //send failed
                         //player 2 probably disconnected               
                     }
                 }
-
-
+                
+                
                 self.tosendupdate = false;
                 
             }
-
-
-
+            
+            
+            
         }
     }
 }
