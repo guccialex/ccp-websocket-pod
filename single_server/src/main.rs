@@ -1,8 +1,10 @@
+#![feature(proc_macro_hygiene, decl_macro)]
+#[macro_use] extern crate rocket;
+
 use physicsengine::MainGame;
 use std::sync::Arc;
 use std::net::TcpListener;
 use std::net::TcpStream;
-use std::thread::spawn;
 use tungstenite::accept_hdr;
 use tungstenite::handshake::server::{Request, Response};
 use tungstenite::server::accept;
@@ -16,8 +18,31 @@ use std::{thread, time};
 
 use std::env;
 
+use std::sync::atomic::{AtomicU16, Ordering};
+
+use rocket::State;
+
+
+#[get("/getstate")]
+fn get_state(data: State<Arc<Mutex<Game>>>) -> &'static str {
+    "Hello, world!"
+}
+
+#[get("/set_password")]
+fn set_password(data: State<Arc<Mutex<Game>>>) -> &'static str {
+    "Hello, world!"
+}
+
+
+
+
 
 fn main() {
+    
+    
+    //the matchmaking server connects to the game through port 4000
+    //the client connects to this through port 8880
+    
     println!("Hello, world!");
     
     
@@ -27,36 +52,82 @@ fn main() {
     
     
     //the password is set by the matchmaker through the matchmakers port
-    let gamepassword = "password".to_string();
+    //0 means the password is not set
+    let mut gamepassword: Arc<AtomicU16> = Arc::new(AtomicU16::new(0));
+    
+    
     
     
     let webaddress = "0.0.0.0".to_string();
-    //the port the players connect to the server through is 3000
-    let playerport = "3000";
     
-    let playerlistener = TcpListener::bind(webaddress + ":" + playerport).unwrap();
+    let playerport = "4000";
+    let playerlistener = TcpListener::bind(webaddress.clone() + ":" + playerport).unwrap();    
+    
+    let matchmakerport = "8880";
+    let matchmakerlistener = TcpListener::bind(webaddress + ":" + matchmakerport).unwrap();
     
     
-    //tell agones that the game is ready to accept player connections
+    /*
+    has the matchmaker set the password 
+    
+    is the websocket connection with the matchmaker currently valid
+    
+    
+    if the password has been set by the matchmaker
+    you can start accepting incoming players with the appropriate password
+    
+    if the websocket connection with the matchmaker is disconnected, pause and wait for
+    the matchmaker to connect again?
+    */
+    
+    
+    
+    
     let thegame = Game::new();
     
     let mutexgame = Arc::new(Mutex::new( thegame ));
     
     
+
+
+
+    let mutexgamecopy = mutexgame.clone();
+    let passwordcopy = gamepassword.clone();
+
+    //run a server that responds to requests from the matchmaking server
+    //about the state of this game
+    thread::spawn(move || {
+
+
+        //if its not responding to pings yet and isnt operating yet
+        //if it hasnt had its password set yet
+        //get if it has a password set
+        //get if it has both players registered
+
+
+        rocket::ignite()
+        .manage(mutexgamecopy)
+        .manage(passwordcopy)
+        .mount("/", routes![get_state, set_password]).launch();
+
+    });
+
+
+
+
+    
     
     
     //tick the game 30 times a second
     let mutexgamecopy = mutexgame.clone();
-    spawn(move || {
+    thread::spawn(move || {
         
         loop{
-            
             
             //it shouldnt be WAIT 33 ms, but wait until its 
             //33 ms past the last time this was ticked
             let sleeptime = time::Duration::from_millis(32);
             thread::sleep( sleeptime );
-            
             
             //taking ownership of the "games" list
             //to tick the game
@@ -65,64 +136,39 @@ fn main() {
                 
                 game.tick();    
             }
-            
         }
-        
-    });
-    
-    
-    
-    //the connection this server has with the matchmaking server
-    //on port 4000
-    spawn(move || {
-        
-        let webaddress = "0.0.0.0".to_string();
-        let gameport = "4000";
-        
-        let listener = TcpListener::bind(webaddress + ":" + gameport).unwrap();
-        
-        
-        //listen for the websocket connection
-        //which i should only get once
-        for stream in listener.incoming() {
-
-            
-            let stream = stream.unwrap();
-                
-            
-            println!("accepted a connection witht eh matchamking server");
-
-
-            break;
-        }
-        
-        
     });
     
     
     
     //for each websocket stream this server gets
     for stream in playerlistener.incoming() {
-
-        println!("connected to player");
         
-
-        //accept a new websocket 10 times every second
-        let sleeptime = time::Duration::from_millis(100);
-        thread::sleep( sleeptime );
-        
-        let mutexgamecopy = mutexgame.clone();
-        
-        let gamepasswordcopy = gamepassword.clone();
+        println!("incoming connection");
         
         
-        //spawn a new thread for the connection
-        spawn(move || {
+        //if the password has been set (this port should not be reached by the client until the password is set anyways)
+        if gamepassword.load(Ordering::Relaxed) != 0 {
             
-            let stream = stream.unwrap();
+            println!("connected to player");
             
-            handle_connection(stream, mutexgamecopy, gamepasswordcopy);            
-        });        
+            //accept a new websocket 10 times every second
+            let sleeptime = time::Duration::from_millis(100);
+            thread::sleep( sleeptime );
+            
+            let mutexgamecopy = mutexgame.clone();
+            
+            let gamepasswordstring = gamepassword.load(Ordering::Relaxed).to_string();
+            
+            
+            //spawn a new thread for the connection
+            thread::spawn(move || {
+                
+                let stream = stream.unwrap();
+                
+                handle_connection(stream, mutexgamecopy, gamepasswordstring);            
+            });
+        }
     }
     
     
@@ -131,12 +177,15 @@ fn main() {
 
 
 
+
+
+
 //handle a connection for the game
 fn handle_connection(mut stream: TcpStream, game: Arc< Mutex< Game >>, password: String){
     
     
     
-    //the password needed to connect to the game as a certain player
+    //the password ncxeeded to connect to the game as a certain player
     let password = password;
     
     
@@ -195,11 +244,6 @@ fn handle_connection(mut stream: TcpStream, game: Arc< Mutex< Game >>, password:
                 
                 
             }
-            
-            
-            
-            //if its not the password for either, do nothing
-            //just let the websocket connection end
             
             
         }
