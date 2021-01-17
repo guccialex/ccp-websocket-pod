@@ -14,4 +14,4 @@ RUN rustup default nightly
 
 RUN cargo build
 
-CMD cargo run
+CMD cargo run --release
