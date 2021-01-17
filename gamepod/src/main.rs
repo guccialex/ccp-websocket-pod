@@ -42,6 +42,7 @@ fn main() {
     
     
     
+    /*
     //tick the game 30 times every second
     {
         let mutexgamecopy = mutexgame.clone();
@@ -115,6 +116,8 @@ fn main() {
             
         }
     }
+
+    */
     
 }
 
