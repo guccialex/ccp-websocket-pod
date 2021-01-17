@@ -115,6 +115,7 @@ fn main() {
             
         }
     }
+    
 }
 
 
@@ -188,6 +189,23 @@ impl Game{
     }
     
     fn tick(&mut self){
+
+        //if the two websockets are connected
+        if let Some(player1websocket) = &self.player1websocket{
+
+            if let Some(player2websocket) = &self.player2websocket{
+
+                println!("game running and ticking");
+
+                //tick the game
+
+
+
+
+
+            }
+
+        }
         
         
         println!("ticking");
@@ -221,6 +239,32 @@ impl Game{
         }
         
     }
+
+    fn set_password(&mut self, password: String){
+        
+        //if the password isnt set yet, set it
+        if self.password.is_none(){
+            
+            self.password  = Some(password);
+        }
+        
+        //else do nothing
+    }
+
+    //get the password and return empty string if the password isnt set yet
+    fn get_password(& self) -> String{
+        
+        if let Some(password) = &self.password{
+            
+            return password.clone();
+        }
+        else
+        {
+            return "".to_string();
+        }
+        
+    }
+    
     
     
     //a player wants to connect to the game
@@ -263,35 +307,7 @@ impl Game{
         
         //otherwise, dont do anything, return and let the websocket connection fall out of scope
         
-        
     }
     
-    
-    fn set_password(&mut self, password: String){
-        
-        //if the password isnt set yet, set it
-        if self.password.is_none(){
-            
-            self.password  = Some(password);
-        }
-        
-        //else do nothing
-    }
-    
-    
-    
-    //get the password and return empty string if the password isnt set yet
-    fn get_password(& self) -> String{
-        
-        if let Some(password) = &self.password{
-            
-            return password.clone();
-        }
-        else
-        {
-            return "".to_string();
-        }
-        
-    }
     
 }
