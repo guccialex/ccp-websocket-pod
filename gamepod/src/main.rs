@@ -41,12 +41,7 @@ fn main() {
     }
     
     
-    loop{
-
-        
-    }
     
-    /*
     //tick the game 30 times every second
     {
         let mutexgamecopy = mutexgame.clone();
@@ -71,6 +66,7 @@ fn main() {
     
     
     
+    
     //for each websocket stream from a client
     //send it to the game
     {
@@ -86,42 +82,41 @@ fn main() {
             
             let mutexgamecopy = mutexgame.clone();
             
-            //already blocks when waiting for client to send the websocket password
-            /*
             //accept a new websocket 10 times every second
             let sleeptime = time::Duration::from_millis(100);
             thread::sleep( sleeptime );
-            */
             
             
             use tungstenite::handshake::server::{Request, Response};
             use tungstenite::accept_hdr;
             
-            let stream = stream.unwrap();
-            
-            stream.set_nonblocking(true);
-            
-            let callback = |req: &Request, mut response: Response| {
-                Ok(response)
-            };
-            
-            //panic and exit if its not a websocket connection
-            let mut websocket = accept_hdr(stream, callback).unwrap();
-            
-            
-            //now that the websocket is established, wait 1000ms for the client to send the password
-            let sleeptime = time::Duration::from_millis(1000);
-            thread::sleep( sleeptime );
-            
-            
-            let mut game = mutexgamecopy.lock().unwrap();
-            
-            game.give_connection(websocket);
-            
+            if let Ok(stream) = stream{
+                
+                
+                if let Ok(_) = stream.set_nonblocking(true){
+                    
+                    
+                    let callback = |req: &Request, mut response: Response| {
+                        Ok(response)
+                    };
+                    
+                    //exit if its not a websocket connection
+                    if let Ok( websocket) = accept_hdr(stream, callback){
+                        
+                        //now that the websocket is established, wait 1000ms for the client to send the password
+                        let sleeptime = time::Duration::from_millis(1000);
+                        thread::sleep( sleeptime );
+                        
+                        let mut game = mutexgamecopy.lock().unwrap();
+                        
+                        game.give_connection(websocket);
+                        
+                    }
+                }
+            }
         }
     }
-
-    */
+    
     
 }
 
@@ -196,22 +191,22 @@ impl Game{
     }
     
     fn tick(&mut self){
-
+        
         //if the two websockets are connected
         if let Some(player1websocket) = &self.player1websocket{
-
+            
             if let Some(player2websocket) = &self.player2websocket{
-
+                
                 println!("game running and ticking");
-
+                
                 //tick the game
-
-
-
-
-
+                
+                
+                
+                
+                
             }
-
+            
         }
         
         
@@ -246,7 +241,7 @@ impl Game{
         }
         
     }
-
+    
     fn set_password(&mut self, password: String){
         
         //if the password isnt set yet, set it
@@ -257,7 +252,7 @@ impl Game{
         
         //else do nothing
     }
-
+    
     //get the password and return empty string if the password isnt set yet
     fn get_password(& self) -> String{
         
@@ -293,7 +288,6 @@ impl Game{
                     //if the message sent is the password
                     if &textmsg == gamepassword{
                         
-                        
                         //if player 1 doesnt exist, connect this websocket as player 1
                         if self.player1websocket.is_none(){
                             
@@ -305,7 +299,6 @@ impl Game{
                             
                             self.player2websocket = Some(websocket);
                         }
-                        
                     }
                 }
             }
