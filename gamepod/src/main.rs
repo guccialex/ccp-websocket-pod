@@ -41,6 +41,10 @@ fn main() {
     }
     
     
+    loop{
+
+        
+    }
     
     /*
     //tick the game 30 times every second
