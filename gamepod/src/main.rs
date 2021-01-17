@@ -35,7 +35,7 @@ fn main() {
         thread::spawn(move || {
             rocket::ignite()
             .manage(mutexgamecopy)
-            .mount("/", routes![ get_state, set_password, get_password])
+            .mount("/", routes![ get_state, set_password, get_password, assign_player])
             .launch();
         });
     }
@@ -161,6 +161,21 @@ fn set_password(password: String, state: State<Arc<Mutex<Game>>>) -> String{
 }
 
 
+//assign a player to this game (add a player)
+#[get("/assign_player")]
+fn assign_player(state: State<Arc<Mutex<Game>>>) -> String {
+    
+    let game = state.inner();
+    let mut game = game.lock().unwrap();
+    
+    game.assign_player();
+
+    //return that it worked
+    "Ok".to_string()
+}
+
+
+
 
 
 
@@ -173,6 +188,10 @@ struct Game{
     player1websocket: Option< tungstenite::WebSocket<std::net::TcpStream>>,
     
     player2websocket: Option< tungstenite::WebSocket<std::net::TcpStream>>,
+
+
+    //how many players have been assigned to this game
+    assignedplayers: u8,
     
 }
 
@@ -187,6 +206,9 @@ impl Game{
             player1websocket: None,
             
             player2websocket: None,
+
+
+            assignedplayers: 0,
         }
     }
     
@@ -213,6 +235,12 @@ impl Game{
         println!("ticking");
     }
     
+
+
+    fn assign_player(&mut self) {
+
+        self.assignedplayers += 1;
+    }
     
     
     //get the state of the game
@@ -229,8 +257,8 @@ impl Game{
             
             return 1;
         }
-        //if either of the websockets havent been set yet
-        else if self.player1websocket.is_none() || self.player2websocket.is_none(){
+        //if less than 2 players have been assigned so far
+        else if self.assignedplayers < 2{
             
             return 2;
         }
