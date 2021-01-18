@@ -232,7 +232,7 @@ impl Game{
         }
         
         
-        println!("ticking");
+        //println!("ticking");
     }
     
 
