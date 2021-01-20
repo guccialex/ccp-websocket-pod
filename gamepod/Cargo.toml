@@ -12,3 +12,6 @@ rocket = "*"
 
 
 tungstenite = "*"
+
+
+physicsengine = { path = "../chesspoker_package" }

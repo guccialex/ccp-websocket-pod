@@ -13,6 +13,8 @@ use std::net::TcpListener;
 use std::net::TcpStream;
 
 
+use physicsengine::MainGame;
+
 
 fn main() {
     
@@ -169,7 +171,7 @@ fn assign_player(state: State<Arc<Mutex<Game>>>) -> String {
     let mut game = game.lock().unwrap();
     
     game.assign_player();
-
+    
     //return that it worked
     "Ok".to_string()
 }
@@ -180,18 +182,24 @@ fn assign_player(state: State<Arc<Mutex<Game>>>) -> String {
 
 
 
-#[derive(Debug)]
+//#[derive(Debug)]
 struct Game{
+    
+    thegame: MainGame,
     
     password: Option<String>,
     
     player1websocket: Option< tungstenite::WebSocket<std::net::TcpStream>>,
     
     player2websocket: Option< tungstenite::WebSocket<std::net::TcpStream>>,
-
-
+    
+    
     //how many players have been assigned to this game
     assignedplayers: u8,
+    
+    
+    //how many more ticks until you resend the state of the game to the players
+    ticksuntilresendstate: i32,
     
 }
 
@@ -201,14 +209,17 @@ impl Game{
     fn new() -> Game{
         
         Game{
+            thegame: MainGame::new_two_player(),
+            
             password: None,
             
             player1websocket: None,
             
             player2websocket: None,
-
-
+            
             assignedplayers: 0,
+            
+            ticksuntilresendstate: 0,
         }
     }
     
@@ -222,23 +233,48 @@ impl Game{
                 println!("game running and ticking");
                 
                 //tick the game
+                self.thegame.tick();
                 
                 
                 
                 
+                if self.ticksuntilresendstate <= 0{
+                    
+                    //get the state of the game
+                    let gamestate = self.thegame.get_string_state();
+                    
+                    //send it through both players websockets
+                    {
+                        
+                        let p2message = tungstenite::Message::text(gamestate);
+                        if let Ok(sentsuccessfully) =  player2websocket.write_message(p2message){
+                        }
+                        
+                        
+                        let p1message = tungstenite::Message::text(gamestate);
+                        if let Ok(sentsuccessfully) =  player1websocket.write_message(p1message){
+                        }
+                        
+                    }        
+                    
+                    self.ticksuntilresendstate = 15;
+                }
+
+                self.ticksuntilresendstate += -1;
+
                 
+
             }
-            
         }
         
         
-        //println!("ticking");
+        
     }
     
-
-
+    
+    
     fn assign_player(&mut self) {
-
+        
         self.assignedplayers += 1;
     }
     
