@@ -94,25 +94,23 @@ fn main() {
             
             if let Ok(stream) = stream{
                 
-                
                 if let Ok(_) = stream.set_nonblocking(true){
-                    
                     
                     let callback = |req: &Request, mut response: Response| {
                         Ok(response)
                     };
                     
+
                     //exit if its not a websocket connection
                     if let Ok( websocket) = accept_hdr(stream, callback){
                         
-                        //now that the websocket is established, wait 1000ms for the client to send the password
-                        let sleeptime = time::Duration::from_millis(1000);
+                        //now that the websocket is established, wait 500ms for the client to send the password
+                        let sleeptime = time::Duration::from_millis(500);
                         thread::sleep( sleeptime );
                         
                         let mut game = mutexgamecopy.lock().unwrap();
                         
                         game.give_connection(websocket);
-                        
                     }
                 }
             }
@@ -162,7 +160,6 @@ fn set_password(password: String, state: State<Arc<Mutex<Game>>>) -> String{
     format!("the password was maybe (if not already set) set as {:?}", password).clone()
 }
 
-
 //assign a player to this game (add a player)
 #[get("/assign_player")]
 fn assign_player(state: State<Arc<Mutex<Game>>>) -> String {
@@ -174,6 +171,8 @@ fn assign_player(state: State<Arc<Mutex<Game>>>) -> String {
     
     //return that it worked
     "Ok".to_string()
+
+    //should really be checking somehwere to make sure I dont assign more than 2
 }
 
 
@@ -200,7 +199,6 @@ struct Game{
     
     //how many more ticks until you resend the state of the game to the players
     ticksuntilresendstate: i32,
-    
 }
 
 
@@ -222,22 +220,60 @@ impl Game{
             ticksuntilresendstate: 0,
         }
     }
+
+
+    fn process_player_input(&mut self){
+
+        //if the two websockets are connected
+        if let Some(player1websocket) = self.player1websocket.as_mut(){
+            
+            if let Some(player2websocket) = self.player2websocket.as_mut(){
+
+                if let Ok(receivedmessage) = player1websocket.read_message(){
+
+                    let message = receivedmessage.to_string();
+
+                    if let Ok(_) = self.thegame.receive_string_input(message){                        
+                        self.ticksuntilresendstate = 0;
+                    }
+
+                }
+
+
+                if let Ok(receivedmessage) = player2websocket.read_message(){
+
+                    let message = receivedmessage.to_string();
+                    
+                    if let Ok(_) = self.thegame.receive_string_input(message){                            
+                        self.ticksuntilresendstate = 0;
+                    }
+                }
+
+
+            }
+        }
+    }
     
+
     fn tick(&mut self){
+
+        //process the incoming inputs of the players
+        self.process_player_input();
+
+
         
         //if the two websockets are connected
-        if let Some(player1websocket) = &self.player1websocket{
+        if let Some(player1websocket) = self.player1websocket.as_mut(){
             
-            if let Some(player2websocket) = &self.player2websocket{
+            if let Some(player2websocket) = self.player2websocket.as_mut(){
                 
+
                 println!("game running and ticking");
                 
                 //tick the game
                 self.thegame.tick();
                 
-                
-                
-                
+
                 if self.ticksuntilresendstate <= 0{
                     
                     //get the state of the game
@@ -246,7 +282,7 @@ impl Game{
                     //send it through both players websockets
                     {
                         
-                        let p2message = tungstenite::Message::text(gamestate);
+                        let p2message = tungstenite::Message::text(gamestate.clone());
                         if let Ok(sentsuccessfully) =  player2websocket.write_message(p2message){
                         }
                         
@@ -255,20 +291,16 @@ impl Game{
                         if let Ok(sentsuccessfully) =  player1websocket.write_message(p1message){
                         }
                         
-                    }        
-                    
+                    }
+
                     self.ticksuntilresendstate = 15;
                 }
 
                 self.ticksuntilresendstate += -1;
-
-                
-
             }
         }
-        
-        
-        
+
+
     }
     
     
@@ -356,7 +388,6 @@ impl Game{
                         if self.player1websocket.is_none(){
                             
                             self.player1websocket = Some(websocket);
-                            
                         }
                         //or if player 2 doesnt exist, connect this websocket as player 2
                         else if self.player2websocket.is_none(){
@@ -370,7 +401,6 @@ impl Game{
         
         
         //otherwise, dont do anything, return and let the websocket connection fall out of scope
-        
     }
     
     
