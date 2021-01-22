@@ -393,6 +393,9 @@ impl Game{
                         else if self.player2websocket.is_none(){
                             
                             self.player2websocket = Some(websocket);
+
+                            //if there are 2 websockets connected, there are 2 players connected
+                            self.assignedplayers = 2;
                         }
                     }
                 }
