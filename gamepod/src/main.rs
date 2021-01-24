@@ -196,7 +196,6 @@ struct Game{
     //how many players have been assigned to this game
     assignedplayers: u8,
     
-    
     //how many more ticks until you resend the state of the game to the players
     ticksuntilresendstate: i32,
 }
