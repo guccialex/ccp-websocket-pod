@@ -325,7 +325,7 @@ impl Game{
             return 1;
         }
         //if less than 2 players have been assigned so far
-        else if self.assignedplayers < 2{
+        else if self.assignedplayers == 0 || self.assignedplayers == 1{
             
             return 2;
         }
