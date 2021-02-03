@@ -12,6 +12,6 @@ WORKDIR /home/gamepod
 RUN rustup update nightly
 RUN rustup default nightly
 
-RUN cargo build
+RUN cargo build --release
 
 CMD ROCKET_ENV=prod cargo run --release
