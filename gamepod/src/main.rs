@@ -247,6 +247,7 @@ impl Game{
                     let message = receivedmessage.to_string();
 
                     if let Ok(_) = self.thegame.receive_string_input(message){                        
+                        println!("receieved input from player 1");
                         self.ticksuntilresendstate = 0;
                     }
 
@@ -257,7 +258,8 @@ impl Game{
 
                     let message = receivedmessage.to_string();
                     
-                    if let Ok(_) = self.thegame.receive_string_input(message){                            
+                    if let Ok(_) = self.thegame.receive_string_input(message){    
+                        println!("receieved input from player 2");                        
                         self.ticksuntilresendstate = 0;
                     }
                 }
@@ -291,6 +293,8 @@ impl Game{
                     
                     //get the state of the game
                     let gamestate = self.thegame.get_string_state();
+
+                    println!("sednign game state updates to clients");
                     
                     //send it through both players websockets
                     {
