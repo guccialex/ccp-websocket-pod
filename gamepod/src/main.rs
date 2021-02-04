@@ -102,15 +102,29 @@ fn main() {
                     
 
                     //exit if its not a websocket connection
-                    if let Ok( websocket) = accept_hdr(stream, callback){
+                    if let Ok(mut websocket) = accept_hdr(stream, callback){
                         
-                        //now that the websocket is established, wait 500ms for the client to send the password
-                        let sleeptime = time::Duration::from_millis(500);
-                        thread::sleep( sleeptime );
-                        
-                        let mut game = mutexgamecopy.lock().unwrap();
-                        
-                        game.give_connection(websocket);
+
+                        //loop 10 times or until the connection succeeds
+                        for x in 0..10{
+
+                            let sleeptime = time::Duration::from_millis(500);
+                            thread::sleep( sleeptime );
+
+                            let mut game = mutexgamecopy.lock().unwrap();
+
+                            //if the websocket is returned, it the connection wasnt accepted
+                            if let Some(returnedwebsocket) = game.give_connection(websocket){
+
+                                websocket = returnedwebsocket;
+                            }
+                            else{
+                                break;
+                            }
+
+                        }
+
+
                     }
                 }
             }
@@ -367,7 +381,8 @@ impl Game{
     //a player wants to connect to the game
     //this method borrows and holds up the entire struct, so wait for the client to send the password
     //method before this function is called
-    fn give_connection(&mut self, mut websocket: tungstenite::WebSocket<std::net::TcpStream>){
+    //return true if the input and password are valid and the player gets connected
+    fn give_connection(&mut self, mut websocket: tungstenite::WebSocket<std::net::TcpStream>) -> Option<tungstenite::WebSocket<std::net::TcpStream>>{
         
         
         
@@ -387,6 +402,7 @@ impl Game{
                         if self.player1websocket.is_none(){
                             
                             self.player1websocket = Some(websocket);
+
                         }
                         //or if player 2 doesnt exist, connect this websocket as player 2
                         else if self.player2websocket.is_none(){
@@ -395,7 +411,10 @@ impl Game{
 
                             //if there are 2 websockets connected, there are 2 players connected
                             self.assignedplayers = 2;
+
                         }
+
+                        return None;
                     }
                 }
             }
@@ -403,6 +422,8 @@ impl Game{
         
         
         //otherwise, dont do anything, return and let the websocket connection fall out of scope
+
+        return Some( websocket );
     }
     
     
