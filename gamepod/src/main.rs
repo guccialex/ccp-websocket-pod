@@ -246,7 +246,7 @@ impl Game{
 
                     let message = receivedmessage.to_string();
 
-                    if let Ok(_) = self.thegame.receive_string_input(1, message){                        
+                    if let Ok(_) = self.thegame.receive_string_input(&1, message){                        
                         println!("receieved input from player 1");
                         self.ticksuntilresendstate = 0;
                     }
@@ -258,7 +258,7 @@ impl Game{
 
                     let message = receivedmessage.to_string();
                     
-                    if let Ok(_) = self.thegame.receive_string_input(2, message){    
+                    if let Ok(_) = self.thegame.receive_string_input(&2, message){    
                         println!("receieved input from player 2");                        
                         self.ticksuntilresendstate = 0;
                     }

@@ -1033,6 +1033,7 @@ dependencies = [
  "rapier3d",
  "rs_poker",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
