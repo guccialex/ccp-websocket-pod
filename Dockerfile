@@ -4,9 +4,6 @@ WORKDIR /home
 
 COPY . .
 
-#pull the ccp-game from the server to be used as a dependancy for single_server
-RUN svn co https://github.com/guccialex/ccp-game.git/trunk/chesspoker_package
-
 WORKDIR /home/gamepod
 
 RUN rustup update nightly
