@@ -275,7 +275,6 @@ impl Game{
         //process the incoming inputs of the players
         self.process_player_input();
 
-
         
         //if the two websockets are connected
         if let Some(player1websocket) = self.player1websocket.as_mut(){
@@ -310,7 +309,7 @@ impl Game{
                         
                     }
 
-                    self.ticksuntilresendstate = 15;
+                    self.ticksuntilresendstate = 30;
                 }
 
                 self.ticksuntilresendstate += -1;
@@ -407,14 +406,12 @@ impl Game{
                         //if player 1 doesnt exist, connect this websocket as player 1
                         if self.player1websocket.is_none(){
 
-
                             let p1message = tungstenite::Message::text("connected to game as player 1");
                             if let Ok(sentsuccessfully) =  websocket.write_message(p1message){
                             }
                             else{
                                 return Some( websocket );
                             }
-
                             
 
                             self.player1websocket = Some(websocket);
@@ -423,14 +420,12 @@ impl Game{
                         //or if player 2 doesnt exist, connect this websocket as player 2
                         else if self.player2websocket.is_none(){
 
-
                             let p2message = tungstenite::Message::text("connected to game as player 2");
                             if let Ok(sentsuccessfully) =  websocket.write_message(p2message){
                             }
                             else{
                                 return Some( websocket );
                             }
-
 
                             
                             self.player2websocket = Some(websocket);
