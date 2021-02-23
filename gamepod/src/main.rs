@@ -41,6 +41,8 @@ fn main() {
             .launch();
         });
     }
+
+
     
     
     
@@ -206,15 +208,11 @@ struct Game{
     
     player2websocket: Option< tungstenite::WebSocket<std::net::TcpStream>>,
     
-    //how many players have been assigned to this game
-    assignedplayers: u8,
-    
     //how many more ticks until you resend the state of the game to the players
     ticksuntilresendstate: i32,
     
-    
     //ticks until end
-    ticksuntilpanic: u32,
+    ticksuntilpanic: i32,
 }
 
 
@@ -241,11 +239,9 @@ impl Game{
             
             player2websocket: None,
             
-            assignedplayers: 0,
-            
             ticksuntilresendstate: 0,
             
-            ticksuntilpanic: 30000,
+            ticksuntilpanic: 100000,
         }
     }
     
@@ -286,12 +282,17 @@ impl Game{
     
     fn tick(&mut self){
         
-        
-        self.ticksuntilpanic = self.ticksuntilpanic - 1;
-        
-        if self.ticksuntilpanic == 0{
-            
-            panic!("Ahhh. this pod has been living long enough");
+
+
+        //if player 1 or 2 arent connected, adn therefore teh game isnt ticking
+        //(which would panic after a sufficient amount of time by itself)
+        //tick down ticks until panic, and panic if less than 0
+        if self.player1websocket.is_none() || self.player2websocket.is_none(){
+
+            self.ticksuntilpanic = self.ticksuntilpanic - 1;
+            if self.ticksuntilpanic <= 0{   
+                panic!("Ahhh. this pod has been living long enough");
+            }
         }
         
         
@@ -349,9 +350,19 @@ impl Game{
     //get the players in the game
     fn get_players_in_game(&self)-> u8{
         
-        println!("the players in game {:?}", self.assignedplayers);
+        let mut playersconnected = 0;
         
-        self.assignedplayers
+        if self.player1websocket.is_some(){
+            playersconnected += 1;
+        }
+
+        if self.player2websocket.is_some(){
+            playersconnected += 1;
+        }
+        
+        println!("the players in game {:?}", playersconnected);
+
+        playersconnected
     }
     
     
@@ -365,10 +376,8 @@ impl Game{
     
     
     
-    //a player wants to connect to the game
-    //this method borrows and holds up the entire struct, so wait for the client to send the password
-    //method before this function is called
-    //return true if the input and password are valid and the player gets connected
+    //return NONE if the connection succeeded
+    //return the websocket if the connection failed
     fn give_connection(&mut self, mut websocket: tungstenite::WebSocket<std::net::TcpStream>) -> Option<tungstenite::WebSocket<std::net::TcpStream>>{
         
         
@@ -386,44 +395,40 @@ impl Game{
                     
                     //if player 1 doesnt exist, connect this websocket as player 1
                     if self.player1websocket.is_none(){
-                        
+
+
                         let p1message = tungstenite::Message::text("connected to game as player 1");
                         if let Ok(sentsuccessfully) =  websocket.write_message(p1message){
+                            
+                            self.player1websocket = Some(websocket);
+                            return None;
                         }
                         else{
                             return Some( websocket );
-                        }
-                        
-                        self.player1websocket = Some(websocket);
-                        
-                        self.assignedplayers = 1;
+                        }                        
                         
                     }
                     //or if player 2 doesnt exist, connect this websocket as player 2
                     else if self.player2websocket.is_none(){
                         
+
                         let p2message = tungstenite::Message::text("connected to game as player 2");
                         if let Ok(sentsuccessfully) =  websocket.write_message(p2message){
+                            
+                            self.player2websocket = Some(websocket);
+                            return None;
                         }
                         else{
                             return Some( websocket );
                         }
-                        
-                        
-                        self.player2websocket = Some(websocket);
-                        
-                        //if there are 2 websockets connected, there are 2 players connected
-                        self.assignedplayers = 2;
-                        
                     }
-                    return None;
                 }
             }
         }
         
         
-        //otherwise, dont do anything, return and let the websocket connection fall out of scope
-        return None;
+        //otherwise return teh websocket that wasnt set as either player 1 or 2
+        return Some( websocket);
     }
     
     
