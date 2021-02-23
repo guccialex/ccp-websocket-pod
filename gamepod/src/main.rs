@@ -71,60 +71,88 @@ fn main() {
     
     //for each websocket stream from a client
     //send it to the game
+    
+    
     {
-        let webaddress = "0.0.0.0".to_string();
+        let mutexgamecopy = mutexgame.clone();
         
-        let playerport = "4000";
-        let playerlistener = TcpListener::bind(webaddress.clone() + ":" + playerport).unwrap();  
-        
-        
-        for stream in playerlistener.incoming() {
+        thread::spawn(move ||{
             
-            println!("incoming connection");
+            let webaddress = "0.0.0.0".to_string();
             
-            let mutexgamecopy = mutexgame.clone();
-            
-            //accept a new websocket 10 times every second
-            let sleeptime = time::Duration::from_millis(100);
-            thread::sleep( sleeptime );
+            let playerport = "4000";
+            let playerlistener = TcpListener::bind(webaddress.clone() + ":" + playerport).unwrap();  
             
             
-            use tungstenite::handshake::server::{Request, Response};
-            use tungstenite::accept_hdr;
-            
-            if let Ok(stream) = stream{
+            for stream in playerlistener.incoming() {
                 
-                if let Ok(_) = stream.set_nonblocking(true){
+                println!("incoming connection");
+                
+                let mutexgamecopy = mutexgamecopy.clone();
+                
+                //accept a new websocket 10 times every second
+                let sleeptime = time::Duration::from_millis(100);
+                thread::sleep( sleeptime );
+                
+                
+                use tungstenite::handshake::server::{Request, Response};
+                use tungstenite::accept_hdr;
+                
+                if let Ok(stream) = stream{
                     
-                    let callback = |req: &Request, mut response: Response| {
-                        Ok(response)
-                    };
-                    
-                    
-                    //exit if its not a websocket connection
-                    if let Ok(mut websocket) = accept_hdr(stream, callback){
+                    if let Ok(_) = stream.set_nonblocking(true){
+                        
+                        let callback = |req: &Request, mut response: Response| {
+                            Ok(response)
+                        };
                         
                         
-                        //loop 10 times or until the connection succeeds
-                        for x in 0..10{
+                        //exit if its not a websocket connection
+                        if let Ok(mut websocket) = accept_hdr(stream, callback){
                             
-                            let sleeptime = time::Duration::from_millis(1000);
-                            thread::sleep( sleeptime );
                             
-                            let mut game = mutexgamecopy.lock().unwrap();
-                            
-                            //if the websocket is returned, it the connection wasnt accepted
-                            if let Some(returnedwebsocket) = game.give_connection(websocket){
+                            //loop 10 times or until the connection succeeds
+                            for x in 0..10{
                                 
-                                websocket = returnedwebsocket;
+                                let sleeptime = time::Duration::from_millis(1000);
+                                thread::sleep( sleeptime );
+                                
+                                let mut game = mutexgamecopy.lock().unwrap();
+                                
+                                //if the websocket is returned, it the connection wasnt accepted
+                                if let Some(returnedwebsocket) = game.give_connection(websocket){
+                                    
+                                    websocket = returnedwebsocket;
+                                }
+                                else{
+                                    break;
+                                }
+                                
                             }
-                            else{
-                                break;
-                            }
-                            
                         }
                     }
                 }
+            }
+        });
+    }
+    
+    
+    
+    //loop until the mutex game is poisoned, then end this pod by panicing
+    {
+        let mutexgamecopy = mutexgame.clone();
+        
+        loop{
+            let sleeptime = time::Duration::from_millis(2000);
+            thread::sleep( sleeptime );
+            
+            if let Ok(_) = mutexgamecopy.lock(){
+
+                //not poisoned
+            }
+            else{
+
+                panic!("Poisoned Main struct. End the pod");
             }
         }
     }
@@ -216,7 +244,7 @@ impl Game{
             assignedplayers: 0,
             
             ticksuntilresendstate: 0,
-
+            
             ticksuntilpanic: 30000,
         }
     }
@@ -257,17 +285,17 @@ impl Game{
     
     
     fn tick(&mut self){
-
-
+        
+        
         self.ticksuntilpanic = self.ticksuntilpanic - 1;
-
+        
         if self.ticksuntilpanic == 0{
-
+            
             panic!("Ahhh. this pod has been living long enough");
         }
-
-
-
+        
+        
+        
         //process the incoming inputs of the players
         self.process_player_input();
         
@@ -306,10 +334,10 @@ impl Game{
                 self.ticksuntilresendstate += -1;
             }
         }
-
-
-
-
+        
+        
+        
+        
         //check if either websocket is still connected
         //if one has been disconnected for longer than... a while, panic
         
@@ -320,7 +348,7 @@ impl Game{
     
     //get the players in the game
     fn get_players_in_game(&self)-> u8{
-
+        
         println!("the players in game {:?}", self.assignedplayers);
         
         self.assignedplayers
@@ -392,7 +420,7 @@ impl Game{
                 }
             }
         }
-
+        
         
         //otherwise, dont do anything, return and let the websocket connection fall out of scope
         return None;
