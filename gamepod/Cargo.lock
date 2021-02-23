@@ -491,6 +491,7 @@ name = "gamepod"
 version = "0.1.0"
 dependencies = [
  "physicsengine",
+ "rand 0.6.5",
  "rocket",
  "tungstenite",
 ]

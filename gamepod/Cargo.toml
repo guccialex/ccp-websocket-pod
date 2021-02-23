@@ -15,3 +15,6 @@ tungstenite = "*"
 
 
 physicsengine = { git = "https://github.com/guccialex/ccp-game/", branch = "main" }
+
+
+rand = "*"
