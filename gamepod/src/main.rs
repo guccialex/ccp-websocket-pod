@@ -143,6 +143,7 @@ use rocket::State;
 #[get("/get_players_in_game")]
 fn get_players_in_game(state: State<Arc<Mutex<Game>>>) -> String {
     
+    println!("getting players in game requested");
     let game = state.inner();
     let game = game.lock().unwrap();
     
@@ -154,6 +155,7 @@ fn get_players_in_game(state: State<Arc<Mutex<Game>>>) -> String {
 #[get("/get_password")]
 fn get_password(state: State<Arc<Mutex<Game>>>) -> String {
     
+    println!("getting request for password");
     let game = state.inner();
     let game = game.lock().unwrap();
     
@@ -318,6 +320,8 @@ impl Game{
     
     //get the players in the game
     fn get_players_in_game(&self)-> u8{
+
+        println!("the players in game {:?}", self.assignedplayers);
         
         self.assignedplayers
     }
