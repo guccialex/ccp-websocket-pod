@@ -92,8 +92,8 @@ fn main() {
                 
                 let mutexgamecopy = mutexgamecopy.clone();
                 
-                //accept a new websocket 10 times every second
-                let sleeptime = time::Duration::from_millis(100);
+                //accept a new websocket every second
+                let sleeptime = time::Duration::from_millis(1000);
                 thread::sleep( sleeptime );
                 
                 
@@ -111,6 +111,8 @@ fn main() {
                         
                         //exit if its not a websocket connection
                         if let Ok(mut websocket) = accept_hdr(stream, callback){
+
+                            println!("passing the websocket connection in");
                             
                             
                             //loop 10 times or until the connection succeeds
@@ -140,7 +142,7 @@ fn main() {
     
     
     
-    //loop until the mutex game is poisoned, then end this pod by panicing
+    //loop until the mutex game is poisoned, then end this pod by panicking without being inside a thread
     {
         let mutexgamecopy = mutexgame.clone();
         
@@ -149,12 +151,11 @@ fn main() {
             thread::sleep( sleeptime );
             
             if let Ok(_) = mutexgamecopy.lock(){
-
                 //not poisoned
             }
             else{
 
-                panic!("Poisoned Main struct. End the pod");
+                panic!("poisoned Main struct. End the pod");
             }
         }
     }
@@ -173,7 +174,7 @@ use rocket::State;
 #[get("/get_players_in_game")]
 fn get_players_in_game(state: State<Arc<Mutex<Game>>>) -> String {
     
-    println!("getting players in game requested");
+    //println!("getting players in game requested");
     let game = state.inner();
     let game = game.lock().unwrap();
     
@@ -185,7 +186,7 @@ fn get_players_in_game(state: State<Arc<Mutex<Game>>>) -> String {
 #[get("/get_password")]
 fn get_password(state: State<Arc<Mutex<Game>>>) -> String {
     
-    println!("getting request for password");
+    //println!("getting request for password");
     let game = state.inner();
     let game = game.lock().unwrap();
     
@@ -316,7 +317,7 @@ impl Game{
                     //get the state of the game
                     let gamestate = self.thegame.get_string_state();
                     
-                    println!("sednign game state updates to clients");
+                    println!("sending game state updates to clients");
                     
                     //send it through both players websockets
                     {
@@ -337,11 +338,8 @@ impl Game{
         }
         
         
-        
-        
         //check if either websocket is still connected
         //if one has been disconnected for longer than... a while, panic
-        
         
     }
     
@@ -360,7 +358,7 @@ impl Game{
             playersconnected += 1;
         }
         
-        println!("the players in game {:?}", playersconnected);
+        //println!("the # of players in game {:?}", playersconnected);
 
         playersconnected
     }
@@ -389,6 +387,8 @@ impl Game{
             
             //if the message is a string
             if let Ok(textmsg) = msg.into_text(){
+
+                println!("the message from the websocket connection is {:?}", textmsg);
                 
                 //if the message sent is the password
                 if &textmsg == &self.password{
