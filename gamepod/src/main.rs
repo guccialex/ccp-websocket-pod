@@ -214,6 +214,9 @@ struct Game{
     
     //ticks until end
     ticksuntilpanic: i32,
+
+    //ticks until the game panics even if it is running
+    ticksuntilrunninggamepanic: i32,
 }
 
 
@@ -243,6 +246,7 @@ impl Game{
             ticksuntilresendstate: 0,
             
             ticksuntilpanic: 100000,
+            ticksuntilrunninggamepanic: 50000,
         }
     }
     
@@ -329,11 +333,20 @@ impl Game{
                         if let Ok(sentsuccessfully) =  player1websocket.write_message(p1message){
                         }
                     }
+
                     
                     self.ticksuntilresendstate = 30;
                 }
-                
+            
                 self.ticksuntilresendstate += -1;
+            
+
+
+                self.ticksuntilrunninggamepanic += -1;
+                if self.ticksuntilrunninggamepanic <= 0 {
+                    panic!("the game has been running long enough to be over");
+                }
+
             }
         }
         
