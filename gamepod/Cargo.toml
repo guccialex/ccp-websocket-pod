@@ -10,11 +10,8 @@ edition = "2018"
 
 rocket = "*"
 
-
 tungstenite = "*"
 
-
 physicsengine = { git = "https://github.com/guccialex/ccp-game/", branch = "main" }
-
 
 rand = "*"
