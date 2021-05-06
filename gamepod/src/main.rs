@@ -41,8 +41,8 @@ fn main() {
             .launch();
         });
     }
-
-
+    
+    
     
     
     
@@ -111,7 +111,7 @@ fn main() {
                         
                         //exit if its not a websocket connection
                         if let Ok(mut websocket) = accept_hdr(stream, callback){
-
+                            
                             println!("passing the websocket connection in");
                             
                             
@@ -154,7 +154,6 @@ fn main() {
                 //not poisoned
             }
             else{
-
                 panic!("poisoned Main struct. End the pod");
             }
         }
@@ -214,7 +213,7 @@ struct Game{
     
     //ticks until end
     ticksuntilpanic: i32,
-
+    
     //ticks until the game panics even if it is running
     ticksuntilrunninggamepanic: i32,
 }
@@ -287,20 +286,6 @@ impl Game{
     
     fn tick(&mut self){
         
-
-
-        //if player 1 or 2 arent connected, adn therefore teh game isnt ticking
-        //(which would panic after a sufficient amount of time by itself)
-        //tick down ticks until panic, and panic if less than 0
-        if self.player1websocket.is_none() || self.player2websocket.is_none(){
-
-            self.ticksuntilpanic = self.ticksuntilpanic - 1;
-            if self.ticksuntilpanic <= 0{   
-                panic!("Ahhh. this pod has been living long enough");
-            }
-        }
-        
-        
         
         //process the incoming inputs of the players
         self.process_player_input();
@@ -311,10 +296,8 @@ impl Game{
             
             if let Some(player2websocket) = self.player2websocket.as_mut(){
                 
-                
                 //tick the game
                 self.thegame.tick();
-                
                 
                 if self.ticksuntilresendstate <= 0{
                     
@@ -333,20 +316,34 @@ impl Game{
                         if let Ok(sentsuccessfully) =  player1websocket.write_message(p1message){
                         }
                     }
-
+                    
                     
                     self.ticksuntilresendstate = 30;
                 }
-            
+                
                 self.ticksuntilresendstate += -1;
-            
-
-
+                
+                
+                
                 self.ticksuntilrunninggamepanic += -1;
                 if self.ticksuntilrunninggamepanic <= 0 {
                     panic!("the game has been running long enough to be over");
                 }
-
+                
+            }
+            else{
+                
+                self.ticksuntilpanic += - 1;
+                if self.ticksuntilpanic <= 0{   
+                    panic!("Ahhh. this pod has been living long enough");
+                }
+            }
+        }
+        else{
+            
+            self.ticksuntilpanic += - 1;
+            if self.ticksuntilpanic <= 0{   
+                panic!("Ahhh. this pod has been living long enough");
             }
         }
         
@@ -366,13 +363,13 @@ impl Game{
         if self.player1websocket.is_some(){
             playersconnected += 1;
         }
-
+        
         if self.player2websocket.is_some(){
             playersconnected += 1;
         }
         
         //println!("the # of players in game {:?}", playersconnected);
-
+        
         playersconnected
     }
     
@@ -400,7 +397,7 @@ impl Game{
             
             //if the message is a string
             if let Ok(textmsg) = msg.into_text(){
-
+                
                 println!("the message from the websocket connection is {:?}", textmsg);
                 
                 //if the message sent is the password
@@ -408,8 +405,8 @@ impl Game{
                     
                     //if player 1 doesnt exist, connect this websocket as player 1
                     if self.player1websocket.is_none(){
-
-
+                        
+                        
                         let p1message = tungstenite::Message::text("connected to game as player 1");
                         if let Ok(sentsuccessfully) =  websocket.write_message(p1message){
                             
@@ -424,7 +421,7 @@ impl Game{
                     //or if player 2 doesnt exist, connect this websocket as player 2
                     else if self.player2websocket.is_none(){
                         
-
+                        
                         let p2message = tungstenite::Message::text("connected to game as player 2");
                         if let Ok(sentsuccessfully) =  websocket.write_message(p2message){
                             
