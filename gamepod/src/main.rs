@@ -138,6 +138,13 @@ fn main() {
 
 
 
+    loop{
+
+        let sleeptime = time::Duration::from_millis(2000);
+        thread::sleep( sleeptime );
+        
+    }
+
     //the profile properties end the program when a panic is called anywhere
     /*
     //loop until the mutex game is poisoned, then end this pod by panicking without being inside a thread
