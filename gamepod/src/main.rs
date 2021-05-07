@@ -35,36 +35,12 @@ fn main() {
         let mutexgamecopy = mutexgame.clone();
         
         thread::spawn(move || {
+
             rocket::ignite()
             .manage(mutexgamecopy)
             .mount("/", routes![ get_players_in_game, get_password ])
             .launch();
-        });
-    }
-    
-    
-    
-    
-    
-    //tick the game 30 times every second
-    {
-        let mutexgamecopy = mutexgame.clone();
-        
-        thread::spawn(move || {
-            
-            loop{
-                
-                //it shouldnt be WAIT 33 ms, but wait until its 
-                //33 ms past the last time this was ticked
-                let sleeptime = time::Duration::from_millis(32);
-                thread::sleep( sleeptime );
-                
-                {
-                    let mut game = mutexgamecopy.lock().unwrap();
-                    
-                    game.tick();    
-                }
-            }
+
         });
     }
     
@@ -73,8 +49,6 @@ fn main() {
     
     //for each websocket stream from a client
     //send it to the game
-    
-    
     {
         let mutexgamecopy = mutexgame.clone();
         
@@ -114,7 +88,6 @@ fn main() {
                             
                             println!("passing the websocket connection in");
                             
-                            
                             //loop 10 times or until the connection succeeds
                             for x in 0..10{
                                 
@@ -131,7 +104,6 @@ fn main() {
                                 else{
                                     break;
                                 }
-                                
                             }
                         }
                     }
@@ -141,6 +113,31 @@ fn main() {
     }
     
     
+
+
+    //tick the game 30 times every second
+    {
+        let mutexgamecopy = mutexgame.clone();
+        
+        thread::spawn(move || {
+            
+            loop{
+                
+                //it shouldnt be WAIT 33 ms, but wait until its 
+                //33 ms past the last time this was ticked
+                let sleeptime = time::Duration::from_millis(32);
+                thread::sleep( sleeptime );
+                
+                {
+                    let mut game = mutexgamecopy.lock().unwrap();
+                    game.tick();    
+                }
+            }
+        });
+    }
+
+
+
     
     //loop until the mutex game is poisoned, then end this pod by panicking without being inside a thread
     {
@@ -317,13 +314,10 @@ impl Game{
                         }
                     }
                     
-                    
                     self.ticksuntilresendstate = 30;
                 }
                 
                 self.ticksuntilresendstate += -1;
-                
-                
                 
                 self.ticksuntilrunninggamepanic += -1;
                 if self.ticksuntilrunninggamepanic <= 0 {
@@ -346,10 +340,6 @@ impl Game{
                 panic!("Ahhh. this pod has been living long enough");
             }
         }
-        
-        
-        //check if either websocket is still connected
-        //if one has been disconnected for longer than... a while, panic
         
     }
     
@@ -436,10 +426,8 @@ impl Game{
             }
         }
         
-        
         //otherwise return teh websocket that wasnt set as either player 1 or 2
         return Some( websocket);
     }
-    
-    
+
 }
